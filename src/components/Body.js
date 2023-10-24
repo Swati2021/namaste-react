@@ -1,13 +1,19 @@
-import RestaurantCard from "./RestaurantCard";
+import RestaurantCard, {WithPromotedLabel} from "./RestaurantCard";
 import resList from "../utils/mockData";
 import { useEffect, useState } from "react";
 import Shimmer from "./Shimmer"
 import { Link } from "react-router-dom"
+import useOnlineStatus from "../utils/useOnlineStatus";
+import UserContext from "../utils/UserContext";
+import { useContext } from "react";
 
 const Body = () => {
     const [listOfRestaurants, setListOfRestaurants] = useState([]);
     const [filteredRestaurant, setFilteredRestaurat] = useState([]);
     const [searchText, setSearchText] = useState("");
+    const { setUserName, loggedInUser} = useContext(UserContext)
+    //higher order
+    const RestaurantCardPromoted = WithPromotedLabel(RestaurantCard)
     useEffect(() => {
         fetchData();
     }, []);
@@ -17,13 +23,20 @@ const Body = () => {
         setListOfRestaurants(json?.data?.cards[5]?.card?.card?.gridElements?.infoWithStyle?.restaurants);
         setFilteredRestaurat(json?.data?.cards[5]?.card?.card?.gridElements?.infoWithStyle?.restaurants);
     }
+    console.log("listOfRestaurants",listOfRestaurants)
+    const onlineStatus = useOnlineStatus();
+    if(onlineStatus === false){
+        return (
+            <h1>You seem to be offline!!!!</h1>
+        )
+    }
     return listOfRestaurants?.length === 0 ? <Shimmer /> : (
         <div className="body">
-            <div className="filter">
-                <div className="search">
-                    <input type="text" className="search-box" value={searchText}
+            <div className="filter flex">
+                <div className="search m-4 p-4">
+                    <input type="text" className="search-box border border-solid border-black" value={searchText}
                     onChange={ (e) => {setSearchText(e.target.value)}} />
-                    <button
+                    <button className="bg-green-100 m-4 px-4 py-1 rounded-lg"
                     onClick={
                         () => {
                            console.log("hi search",searchText) 
@@ -33,19 +46,25 @@ const Body = () => {
                     }
                     >Search</button>
                 </div>
-                <button className="filter-btn" onClick={() => {
-                    const filteredResList = resList.filter((res) => res.info.avgRating > 4 );
-                    setListOfRestaurants(filteredResList);
-                }}>
-                    Top Rated Restaurants
-                </button>
+                <div className="search m-4 p-4 flex items-center">
+                    <button className="px-4 py-2 bg-gray-100 rounded-lg" onClick={() => {
+                        const filteredResList = resList.filter((res) => res.info.avgRating > 4 );
+                        setListOfRestaurants(filteredResList);
+                    }}>
+                        Top Rated Restaurants
+                    </button>
+                </div>
+                <div className="search m-4 p-4 flex items-center">
+                    <input value={loggedInUser} className="border border-black" onChange={(e) => setUserName(e.target.value)}/>
+                </div>
             </div>
-            <div className="search">Search</div>
-            <div className="res-container">
+            
+            <div className="flex flex-wrap">
             {
             filteredRestaurant?.map((restaurant) => (
              <Link style={{  color: 'inherit', textDecoration: 'inherit' }} key = {restaurant?.info?.id} to={"/restaurant/" + restaurant?.info?.id}>
-                <RestaurantCard resData = {restaurant} />
+                {restaurant?.info?.veg ? <RestaurantCardPromoted resData = {restaurant}/> : <RestaurantCard resData = {restaurant} />}
+                
              </Link>
             ))
             }
